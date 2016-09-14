@@ -1,0 +1,30 @@
+#!/bin/bash
+
+set -euo pipefail
+
+json=$(cat -)
+
+keys=(
+    .HostOptions.AuthOptions.CaCertPath
+    .HostOptions.AuthOptions.CaPrivateKeyPath
+    .HostOptions.AuthOptions.ServerCertPath
+    .HostOptions.AuthOptions.ServerKeyPath
+    .HostOptions.AuthOptions.ClientKeyPath
+    .HostOptions.AuthOptions.ClientCertPath
+)
+
+file=$(echo $json | jq -r ".Driver.SSHKeyPath")
+b64=$(cat $file | base64 -w 0 -)
+json=$(echo $json | jq ".Driver.SSHKeyPath = \"$b64\"")
+
+b64=$(cat $file.pub | base64 -w 0 -)
+json=$(echo $json | jq ".Driver.SSHKeyPathPub = \"$b64\"")
+
+for key in ${keys[*]}; do
+    file=$(echo $json | jq -r "$key")
+    b64=$(cat $file | base64 -w 0 -)
+    json=$(echo $json | jq "$key = \"$b64\"")
+done
+
+echo $json
+

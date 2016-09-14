@@ -1,0 +1,48 @@
+#!/bin/bash
+
+set -euo pipefail
+
+json=$(cat -)
+
+name=$(echo $json| jq -r '.Name')
+target=${1:-$name}
+
+dir=$HOME/.docker/machine/machines/$target
+
+[ -d $dir ] && echo "$target exists already." && exit 1
+
+mkdir -p $dir
+
+declare -A dirs=(
+    [.Driver.StorePath]=$HOME/.docker/machine
+    [.HostOptions.AuthOptions.CertDir]=$dir/certs
+    [.HostOptions.AuthOptions.StorePath]=$dir
+)
+
+for key in ${!dirs[*]}; do
+    file=${dirs[$key]}
+    mkdir -p $file
+    json=$(echo $json | jq "$key = \"$file\"")
+done
+
+declare -A keys=(
+    [.Driver.SSHKeyPath]=$dir/id_rsa
+    [.Driver.SSHKeyPathPub]=$dir/id_rsa.pub
+    [.HostOptions.AuthOptions.CaCertPath]=$dir/certs/ca.pem
+    [.HostOptions.AuthOptions.CaPrivateKeyPath]=$dir/certs/ca-key.pem
+    [.HostOptions.AuthOptions.ServerCertPath]=$dir/server.pem
+    [.HostOptions.AuthOptions.ServerKeyPath]=$dir/server-key.pem
+    [.HostOptions.AuthOptions.ClientCertPath]=$dir/client.pem
+    [.HostOptions.AuthOptions.ClientKeyPath]=$dir/client-key.pem
+)
+
+for key in ${!keys[*]}; do
+    b64=$(echo $json | jq -r "$key")
+    file=${keys[$key]}
+    mkdir -p $(dirname $file)
+    echo $b64 | base64 -w 0 -d - > $file
+    chmod 0400 $file
+    json=$(echo $json | jq "$key = \"$file\"")
+done
+
+echo $json > $dir/config.json
