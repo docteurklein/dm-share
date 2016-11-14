@@ -16,14 +16,17 @@ keys=(
 file=$(echo $json | jq -r ".Driver.SSHKeyPath")
 b64=$(cat $file | base64 -w 0 -)
 json=$(echo $json | jq ".Driver.SSHKeyPath = \"$b64\"")
+json=$(echo $json | jq ".Driver.SSHKeyPathmd5sum = \"$(cat $file | md5sum)\"")
 
 b64=$(cat $file.pub | base64 -w 0 -)
 json=$(echo $json | jq ".Driver.SSHKeyPathPub = \"$b64\"")
+json=$(echo $json | jq ".Driver.SSHKeyPathPubmd5sum = \"$(cat $file.pub | md5sum)\"")
 
 for key in ${keys[*]}; do
-    file=$(echo $json | jq -r "$key")
+    file=$(echo $json | jq -r $key)
     b64=$(cat $file | base64 -w 0 -)
     json=$(echo $json | jq "$key = \"$b64\"")
+    json=$(echo $json | jq "${key}md5sum = \"$(cat $file | md5sum)\"")
 done
 
 echo $json

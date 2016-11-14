@@ -1,6 +1,6 @@
 FROM alpine
 
-ENTRYPOINT ["/bin/dm-export"]
+ENTRYPOINT ["/bin/dm-import"]
 
 RUN apk --no-cache add jq bash
 

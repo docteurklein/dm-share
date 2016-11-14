@@ -25,7 +25,7 @@ for key in ${!dirs[*]}; do
     json=$(echo $json | jq "$key = \"$file\"")
 done
 
-declare -A keys=(
+declare -A files=(
     [.Driver.SSHKeyPath]=$dir/id_rsa
     [.Driver.SSHKeyPathPub]=$dir/id_rsa.pub
     [.HostOptions.AuthOptions.CaCertPath]=$dir/certs/ca.pem
@@ -36,11 +36,16 @@ declare -A keys=(
     [.HostOptions.AuthOptions.ClientKeyPath]=$dir/client-key.pem
 )
 
-for key in ${!keys[*]}; do
-    b64=$(echo $json | jq -r "$key")
-    file=${keys[$key]}
+for key in ${!files[*]}; do
+    b64=$(echo $json | jq -r $key)
+    file=${files[$key]}
     mkdir -p $(dirname $file)
     echo $b64 | base64 -w 0 -d - > $file
+
+    echo $json | jq -r "${key}md5sum" > /tmp/md5sum
+    echo $file
+    cat $file | md5sum -c /tmp/md5sum
+
     chmod 0400 $file
     json=$(echo $json | jq "$key = \"$file\"")
 done
